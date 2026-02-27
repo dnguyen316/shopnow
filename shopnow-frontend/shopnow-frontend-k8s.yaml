@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shopnow-frontend
+  namespace: shopnow
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shopnow-frontend
+  template:
+    metadata:
+      labels:
+        app: shopnow-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: us-central1-docker.pkg.dev/qwiklabs-gcp-01-022a7590d038/shopnow/shopnow-frontend:v2
+          ports:
+            - containerPort: 8080 # change to 80 if you chose Option B
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shopnow-frontend-svc
+  namespace: shopnow
+spec:
+  type: ClusterIP
+  selector:
+    app: shopnow-frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080 # change to 80 if you chose Option B
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shopnow-frontend-ingress
+  namespace: shopnow
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+        - shopnow.thehknews.online
+      secretName: shopnow-frontend-tls
+  rules:
+    - host: shopnow.thehknews.online
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shopnow-frontend-svc
+                port:
+                  number: 80
