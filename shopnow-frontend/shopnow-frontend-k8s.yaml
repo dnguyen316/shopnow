@@ -13,9 +13,12 @@ spec:
       labels:
         app: shopnow-frontend
     spec:
+      imagePullSecrets:
+        - name: ar-pull-secret
       containers:
-        - name: frontend
-          image: us-central1-docker.pkg.dev/qwiklabs-gcp-01-022a7590d038/shopnow/shopnow-frontend:v2
+        - name: shopnow-frontend
+          image: us-central1-docker.pkg.dev/shopnow-488914/shopnow-registry/shopnow-frontend:v1
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080 # change to 80 if you chose Option B
           readinessProbe:
@@ -30,12 +33,19 @@ spec:
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsUser: 101
+            runAsGroup: 101
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: "10m"
+              memory: "64Mi"
             limits:
-              cpu: "500m"
+              cpu: "300m"
               memory: "256Mi"
 ---
 apiVersion: v1
@@ -60,11 +70,9 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  namespace: shopnow
 spec:
-  tls:
-    - hosts:
-        - shopnow.thehknews.online
-      secretName: shopnow-frontend-tls
+  ingressClassName: nginx
   rules:
     - host: shopnow.thehknews.online
       http:
